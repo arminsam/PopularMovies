@@ -1,26 +1,27 @@
 package com.arminsam.popularmovies;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.GridLayout;
 import android.widget.GridView;
 import android.widget.ImageView;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
 public class ImageAdapter extends BaseAdapter {
 
     private Context mContext;
-    private List<Integer> mThumbIds;
-    private LayoutInflater mInflater;
+    private List<Movie> mMovies;
+    private LayoutInflater mLayoutInflater;
 
-    public ImageAdapter(Context context, List<Integer> ids) {
-        this.mContext = context;
-        this.mThumbIds = ids;
-        this.mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    public ImageAdapter(Context context, List<Movie> movies) {
+        mContext = context;
+        mMovies = movies;
+        mLayoutInflater = LayoutInflater.from(context);
     }
 
     /**
@@ -30,7 +31,7 @@ public class ImageAdapter extends BaseAdapter {
      */
     @Override
     public int getCount() {
-        return this.mThumbIds.size();
+        return mMovies.size();
     }
 
     /**
@@ -41,7 +42,7 @@ public class ImageAdapter extends BaseAdapter {
      */
     @Override
     public Object getItem(int position) {
-        return this.mThumbIds.get(position);
+        return mMovies.get(position);
     }
 
     /**
@@ -52,7 +53,7 @@ public class ImageAdapter extends BaseAdapter {
      */
     @Override
     public long getItemId(int position) {
-        return this.mThumbIds.get(position);
+        return mMovies.get(position).getMovieId();
     }
 
     /**
@@ -67,13 +68,29 @@ public class ImageAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView = (ImageView) convertView;
 
-        // if item is not recycled, load item from its layout
+        // if item is not recycled, create a new ImageView object
         if (imageView == null) {
-            imageView = (ImageView) this.mInflater.inflate(R.layout.grid_item, null);
+            imageView = (ImageView) mLayoutInflater.inflate(R.layout.grid_item, null);
         }
-
-        imageView.setImageResource(this.mThumbIds.get(position));
+        Movie movie = mMovies.get(position);
+        Picasso.with(mContext).load(movie.getPosterPath()).into(imageView);
 
         return imageView;
+    }
+
+    /**
+     * Clear the list.
+     */
+    public void clear() {
+        mMovies.clear();
+    }
+
+    /**
+     * Add new movie to the list.
+     *
+     * @param movie
+     */
+    public void add(Movie movie) {
+        mMovies.add(movie);
     }
 }
