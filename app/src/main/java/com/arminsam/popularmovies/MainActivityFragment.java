@@ -1,7 +1,9 @@
 package com.arminsam.popularmovies;
 
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,14 +41,29 @@ public class MainActivityFragment extends Fragment {
         mMoviesArray = new ArrayList<>();
         mImageAdapter = new ImageAdapter(getActivity(), mMoviesArray);
 
-        FetchMoviesTask moviesTask = new FetchMoviesTask();
-        moviesTask.execute("popularity");
-
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.movies_list);
         gridView.setAdapter(mImageAdapter);
 
         return rootView;
+    }
+
+    /**
+     * Update the movies list and display them on the screen.
+     */
+    private void updateMovies() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sortBy = prefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_popularity));
+
+        FetchMoviesTask moviesTask = new FetchMoviesTask();
+        moviesTask.execute(sortBy);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateMovies();
     }
 
     public class FetchMoviesTask extends AsyncTask<String, Void, List<Movie>> {
