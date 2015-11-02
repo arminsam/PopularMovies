@@ -1,5 +1,6 @@
 package com.arminsam.popularmovies;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -10,6 +11,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.GridView;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,8 +26,10 @@ import java.util.List;
  */
 public class MainActivityFragment extends Fragment {
 
-    private List<Movie> mMoviesArray;
     private ImageAdapter mImageAdapter;
+    private ArrayList<Movie> mMovies;
+    private SharedPreferences mPrefs;
+    private String mCurrentSortPref;
 
     public MainActivityFragment() {
     }
@@ -33,19 +37,65 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState == null || !savedInstanceState.containsKey("movies")) {
+            mMovies = new ArrayList<>();
+            updateMovies();
+        }
+        else {
+            mMovies = savedInstanceState.getParcelableArrayList("movies");
+        }
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        mCurrentSortPref = mPrefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_popularity));
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mMoviesArray = new ArrayList<>();
-        mImageAdapter = new ImageAdapter(getActivity(), mMoviesArray);
+        mImageAdapter = new ImageAdapter(getActivity(), mMovies);
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         GridView gridView = (GridView) rootView.findViewById(R.id.movies_list);
         gridView.setAdapter(mImageAdapter);
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                Movie movie = mImageAdapter.getItem(position);
+                Intent intent = new Intent(getActivity(), DetailActivity.class)
+                        .putExtra("com.arminsam.popularmovies.Movie", movie);
+                startActivity(intent);
+            }
+        });
 
         return rootView;
+    }
+
+    /**
+     * Called when the Fragment is visible to the user.
+     */
+    @Override
+    public void onStart() {
+        super.onStart();
+        String newPref = mPrefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_popularity));
+
+        // If sorting preference has changed, reload the data
+        if (mCurrentSortPref != newPref) {
+            updateMovies();
+        }
+    }
+
+    /**
+     * Called to ask the fragment to save its current dynamic state, so it
+     * can later be reconstructed in a new instance of its process is
+     * restarted.
+     *
+     * @param outState Bundle in which to place your saved state.
+     */
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList("movies", mMovies);
+        super.onSaveInstanceState(outState);
     }
 
     /**
@@ -58,12 +108,6 @@ public class MainActivityFragment extends Fragment {
 
         FetchMoviesTask moviesTask = new FetchMoviesTask();
         moviesTask.execute(sortBy);
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        updateMovies();
     }
 
     public class FetchMoviesTask extends AsyncTask<String, Void, List<Movie>> {
@@ -159,11 +203,9 @@ public class MainActivityFragment extends Fragment {
         @Override
         protected void onPostExecute(List<Movie> movies) {
             if (movies != null) {
-                mMoviesArray = movies;
+                mMovies = (ArrayList) movies;
                 mImageAdapter.clear();
-                for (Movie m : movies) {
-                    mImageAdapter.add(m);
-                }
+                mImageAdapter.addAll(movies);
                 mImageAdapter.notifyDataSetChanged();
             }
         }
