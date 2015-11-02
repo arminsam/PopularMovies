@@ -81,6 +81,7 @@ public class MainActivityFragment extends Fragment {
 
         // If sorting preference has changed, reload the data
         if (mCurrentSortPref != newPref) {
+            mCurrentSortPref = newPref;
             updateMovies();
         }
     }
