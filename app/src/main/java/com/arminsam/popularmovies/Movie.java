@@ -3,6 +3,12 @@ package com.arminsam.popularmovies;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class Movie implements Parcelable {
 
     private long movieId;
@@ -78,6 +84,17 @@ public class Movie implements Parcelable {
         return releaseDate;
     }
 
+    public String getReleaseYear() {
+        DateFormat format = new SimpleDateFormat("yyyy-mm-dd");
+        String year = "-";
+        try {
+            Date releaseDate = format.parse(getReleaseDate());
+            year = (new SimpleDateFormat("yyyy")).format(releaseDate);
+        }
+        catch(ParseException e) {}
+        return year;
+    }
+
     public void setReleaseDate(String releaseDate) {
         this.releaseDate = releaseDate;
     }
@@ -91,7 +108,7 @@ public class Movie implements Parcelable {
     }
 
     public String getVoteAverage() {
-        return voteAverage;
+        return voteAverage + "/10";
     }
 
     public void setVoteAverage(String voteAverage) {

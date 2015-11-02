@@ -62,7 +62,7 @@ public class MainActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
                 Movie movie = mImageAdapter.getItem(position);
                 Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra("com.arminsam.popularmovies.Movie", movie);
+                        .putExtra(getString(R.string.EXTRA_MOVIE), movie);
                 startActivity(intent);
             }
         });
