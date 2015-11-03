@@ -34,7 +34,10 @@ public class ImageAdapter extends ArrayAdapter<Movie> {
         }
 
         Movie movie = getItem(position);
-        Picasso.with(getContext()).load(movie.getPosterPath()).into(posterImage);
+        Picasso.with(getContext()).load(movie.getPosterPath())
+                .placeholder(R.drawable.image_placeholder)
+                .error(R.drawable.error_placeholder)
+                .into(posterImage);
 
         return posterImage;
     }

@@ -8,12 +8,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import butterknife.Bind;
+import butterknife.ButterKnife;
 import com.squareup.picasso.Picasso;
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class DetailActivityFragment extends Fragment {
+
+    @Bind(R.id.movie_title) TextView movieTitle;
+    @Bind(R.id.movie_year) TextView movieYear;
+    @Bind(R.id.movie_rate) TextView movieRate;
+    @Bind(R.id.movie_overview) TextView movieOverview;
+    @Bind(R.id.movie_poster) ImageView moviePoster;
 
     public DetailActivityFragment() {
     }
@@ -23,17 +31,18 @@ public class DetailActivityFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         Intent intent = getActivity().getIntent();
+        ButterKnife.bind(this, rootView);
 
         // Decode movie's detail from bundled data received over intent
         if (intent != null && intent.hasExtra(getString(R.string.EXTRA_MOVIE))) {
             Bundle bundle = intent.getExtras();
             Movie movie = bundle.getParcelable(getString(R.string.EXTRA_MOVIE));
-            ((TextView) rootView.findViewById(R.id.movie_title)).setText(movie.getOriginalTitle());
-            ((TextView) rootView.findViewById(R.id.movie_year)).setText(movie.getReleaseYear());
-            ((TextView) rootView.findViewById(R.id.movie_rate)).setText(movie.getVoteAverage());
-            ((TextView) rootView.findViewById(R.id.movie_overview)).setText(movie.getOverview());
+            movieTitle.setText(movie.getOriginalTitle());
+            movieYear.setText(movie.getReleaseYear());
+            movieRate.setText(movie.getVoteAverage());
+            movieOverview.setText(movie.getOverview());
             Picasso.with(getActivity()).load(movie.getPosterPath())
-                    .into((ImageView) rootView.findViewById(R.id.movie_poster));
+                    .into(moviePoster);
         }
 
         return rootView;
