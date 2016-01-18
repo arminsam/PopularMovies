@@ -7,7 +7,6 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import android.support.v4.app.Fragment;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import java.util.List;
 
 public class FetchMoviesTask extends AsyncTask<String, Void, List<Movie>> {
 
-    private final String LOG_TAG = MainActivityFragment.class.getSimpleName();
+    private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
     private MainActivityFragment mCaller;
     private Context mContext;
 
@@ -41,8 +40,8 @@ public class FetchMoviesTask extends AsyncTask<String, Void, List<Movie>> {
         final String MOVIE_POSTER_PATH = "poster_path";
         final String MOVIE_VOTE_AVERAGE = "vote_average";
 
-        JSONObject forecastJson = new JSONObject(moviesJsonStr);
-        JSONArray moviesArray = forecastJson.getJSONArray(MOVIE_LIST);
+        JSONObject moviesJson = new JSONObject(moviesJsonStr);
+        JSONArray moviesArray = moviesJson.getJSONArray(MOVIE_LIST);
 
         List<Movie> resultList = new ArrayList<>();
 
