@@ -1,6 +1,8 @@
 package com.arminsam.popularmovies;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.support.v4.widget.CursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,35 +12,40 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
-public class ImageAdapter extends ArrayAdapter<Movie> {
+public class ImageAdapter extends CursorAdapter {
 
-    public ImageAdapter(Context context, List<Movie> movies) {
-        super(context, 0, movies);
+    public ImageAdapter(Context context, Cursor c, int flags) {
+        super(context, c, flags);
     }
 
     /**
-     * Return an ImageView object for each item referenced by the adapter
-     *
-     * @param position
-     * @param convertView
-     * @param parent
-     * @return
+     * Cache of the children views for a movie list item.
      */
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ImageView posterImage = (ImageView) convertView;
+    public static class ViewHolder {
+        public final ImageView posterImage;
 
-        // if item is not recycled, create a new ImageView object
-        if (posterImage == null) {
-            posterImage = (ImageView) LayoutInflater.from(getContext()).inflate(R.layout.grid_item, parent, false);
+        public ViewHolder(View view) {
+            posterImage = (ImageView) view.findViewById(R.id.grid_thumbnail);
         }
+    }
 
-        Movie movie = getItem(position);
-        Picasso.with(getContext()).load(movie.getPosterPath())
+    @Override
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = LayoutInflater.from(context).inflate(R.layout.grid_item, parent, false);
+
+        ViewHolder viewHolder = new ViewHolder(view);
+        view.setTag(viewHolder);
+
+        return view;
+    }
+
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+        ViewHolder viewHolder = (ViewHolder) view.getTag();
+
+        Picasso.with(context).load(cursor.getString(MainActivityFragment.COL_POSTER_PATH))
                 .placeholder(R.drawable.image_placeholder)
                 .error(R.drawable.error_placeholder)
-                .into(posterImage);
-
-        return posterImage;
+                .into(viewHolder.posterImage);
     }
 }

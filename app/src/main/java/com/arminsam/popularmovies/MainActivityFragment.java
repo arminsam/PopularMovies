@@ -2,75 +2,142 @@ package com.arminsam.popularmovies;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.util.Log;
+import android.view.*;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import butterknife.OnItemClick;
-import java.util.ArrayList;
+import com.arminsam.popularmovies.data.PopularMoviesContract;
 
 /**
  * A placeholder fragment containing a simple view.
  */
-public class MainActivityFragment extends Fragment {
+public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int MOVIES_LOADER = 0;
 
     private ImageAdapter mImageAdapter;
-    private ArrayList<Movie> mMovies;
     private SharedPreferences mPrefs;
     private String mCurrentSortPref;
+    // For the movies view we're showing only a small subset of the stored data.
+    private static final String[] MOVIE_COLUMNS = {
+            PopularMoviesContract.MoviesEntry.TABLE_NAME + "." + PopularMoviesContract.MoviesEntry._ID,
+            PopularMoviesContract.MoviesEntry.COLUMN_MOVIE_ID,
+            PopularMoviesContract.MoviesEntry.COLUMN_POSTER_PATH,
+            PopularMoviesContract.MoviesEntry.COLUMN_FAVORITE,
+            PopularMoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE,
+            PopularMoviesContract.MoviesEntry.COLUMN_ORIGINAL_TITLE
+    };
+    // These indices are tied to MOVIE_COLUMNS. If MOVIE_COLUMNS changes, these must change.
+    static final int COL_ID = 0;
+    static final int COL_MOVIE_ID = 1;
+    static final int COL_POSTER_PATH = 2;
+    static final int COL_FAVORITE = 3;
+    static final int COL_VOTE_AVERAGE = 4;
+    static final int COL_ORIGINAL_TITLE = 5;
 
     @Bind(R.id.movies_list) GridView gridView;
 
     public MainActivityFragment() {
     }
 
-    public ImageAdapter getImageAdapter() {
-        return this.mImageAdapter;
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        void onItemSelected(Uri dateUri);
     }
 
-    public void setMovies(ArrayList<Movie> movies) {
-        this.mMovies = movies;
+    public ImageAdapter getImageAdapter() {
+        return this.mImageAdapter;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (savedInstanceState == null || !savedInstanceState.containsKey("movies")) {
-            mMovies = new ArrayList<>();
-            updateMovies();
-        }
-        else {
-            mMovies = savedInstanceState.getParcelableArrayList("movies");
-        }
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         mCurrentSortPref = mPrefs.getString(getString(R.string.pref_sort_key),
                 getString(R.string.pref_sort_popularity));
+        // Update local database data whenever the launches for the first time
+        updateMovies();
+        // Add this line in order for this fragment to handle menu events.
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        inflater.inflate(R.menu.menu_main, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(getActivity(), SettingsActivity.class));
+            return true;
+        }
+        else if (id == R.id.action_refresh) {
+            updateMovies();
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mImageAdapter = new ImageAdapter(getActivity(), mMovies);
+        mImageAdapter = new ImageAdapter(getActivity(), null, 0);
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         ButterKnife.bind(this, rootView);
         gridView.setAdapter(mImageAdapter);
 
+        // We'll call our MainActivity
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                // CursorAdapter returns a cursor at the correct position for getItem(), or null
+                // if it cannot seek to that position.
+                Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                if (cursor != null) {
+                    ((Callback) getActivity())
+                            .onItemSelected(PopularMoviesContract.MoviesEntry.buildMovieUri(
+                                    cursor.getLong(COL_ID)
+                            ));
+                }
+            }
+        });
+
         return rootView;
     }
 
-    @OnItemClick(R.id.movies_list)
-    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-        Movie movie = mImageAdapter.getItem(position);
-        Intent intent = new Intent(getActivity(), DetailActivity.class)
-                .putExtra(getString(R.string.EXTRA_MOVIE), movie);
-        startActivity(intent);
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(MOVIES_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     /**
@@ -85,7 +152,7 @@ public class MainActivityFragment extends Fragment {
         // If sorting preference has changed, reload the data
         if (mCurrentSortPref != newPref) {
             mCurrentSortPref = newPref;
-            updateMovies();
+            onSortBySettingChanged();
         }
     }
 
@@ -98,20 +165,53 @@ public class MainActivityFragment extends Fragment {
      */
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putParcelableArrayList("movies", mMovies);
         super.onSaveInstanceState(outState);
+    }
+
+    // since we read the sort by setting when we create the loader, all we need to do is restart things
+    public void onSortBySettingChanged() {
+        updateMovies();
     }
 
     /**
      * Update the movies list and display them on the screen.
      */
     private void updateMovies() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sortBy = prefs.getString(getString(R.string.pref_sort_key),
-                getString(R.string.pref_sort_popularity));
+        if (!mCurrentSortPref.equals(getString(R.string.pref_sort_favorite))) {
+            FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity());
+            moviesTask.execute(mCurrentSortPref);
+        }
+        getLoaderManager().restartLoader(MOVIES_LOADER, null, this);
+    }
 
-        FetchMoviesTask moviesTask = new FetchMoviesTask(getActivity(), this);
-        moviesTask.execute(sortBy);
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        String sortBy = PopularMoviesContract.SORT_FAVORITE;
+        // get current sort preference to build the uri
+        if (mCurrentSortPref.equals(getString(R.string.pref_sort_popularity))) {
+            sortBy = PopularMoviesContract.SORT_POPULARITY;
+        }
+        else if (mCurrentSortPref.equals(getString(R.string.pref_sort_rate))) {
+            sortBy = PopularMoviesContract.SORT_RATE;
+        }
+        // build the content uri based on the sort preference
+        Uri moviesUri = PopularMoviesContract.MoviesEntry.buildMoviesUri(sortBy);
+
+        return new CursorLoader(getActivity(), moviesUri, MOVIE_COLUMNS, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        // Show a message for empty result - i.e. no favorite movie yet
+        if (!data.moveToFirst()) {
+            (Toast.makeText(getActivity(), "No movies found!", Toast.LENGTH_LONG)).show();
+        }
+        mImageAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mImageAdapter.swapCursor(null);
     }
 
 }

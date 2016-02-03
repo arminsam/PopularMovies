@@ -1,6 +1,7 @@
 package com.arminsam.popularmovies;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -103,7 +104,10 @@ public class DetailActivityFragment extends Fragment {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(getActivity(), trailer.getName(), Toast.LENGTH_SHORT).show();
+                        String url = "https://www.youtube.com/watch?v=" + trailer.getSource();
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
                     }
                 });
             }

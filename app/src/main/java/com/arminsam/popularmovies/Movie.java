@@ -18,8 +18,6 @@ public class Movie implements Parcelable {
     private String releaseDate;
     private String posterPath;
     private String voteAverage;
-    private List<Trailer> trailers;
-    private List<Review> reviews;
 
     public Movie() {}
 
@@ -30,8 +28,6 @@ public class Movie implements Parcelable {
         releaseDate = in.readString();
         posterPath = in.readString();
         voteAverage = in.readString();
-        trailers = in.readArrayList(Trailer.class.getClassLoader());
-        reviews = in.readArrayList(Review.class.getClassLoader());
     }
 
     public static final Creator<Movie> CREATOR = new Creator<Movie>() {
@@ -59,8 +55,6 @@ public class Movie implements Parcelable {
         dest.writeString(releaseDate);
         dest.writeString(posterPath);
         dest.writeString(voteAverage);
-        dest.writeList(trailers);
-        dest.writeList(reviews);
     }
 
     public long getMovieId() {
@@ -120,22 +114,6 @@ public class Movie implements Parcelable {
 
     public void setVoteAverage(String voteAverage) {
         this.voteAverage = voteAverage;
-    }
-
-    public List<Trailer> getTrailers() {
-        return trailers;
-    }
-
-    public void setTrailers(List<Trailer> trailers) {
-        this.trailers = trailers;
-    }
-
-    public List<Review> getReviews() {
-        return reviews;
-    }
-
-    public void setReviews(List<Review> reviews) {
-        this.reviews = reviews;
     }
 
 }
