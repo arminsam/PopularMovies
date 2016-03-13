@@ -7,14 +7,14 @@ public class Trailer implements Parcelable {
 
     private String source;
     private String name;
-    private String size;
+    private long size;
 
     public Trailer() {}
 
     private Trailer(Parcel in) {
         source = in.readString();
         name = in.readString();
-        size = in.readString();
+        size = in.readLong();
     }
 
     public static final Creator<Trailer> CREATOR = new Creator<Trailer>() {
@@ -38,7 +38,7 @@ public class Trailer implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(source);
         dest.writeString(name);
-        dest.writeString(size);
+        dest.writeLong(size);
     }
 
     public String getSource() {
@@ -57,11 +57,11 @@ public class Trailer implements Parcelable {
         this.name = name;
     }
 
-    public String getSize() {
+    public long getSize() {
         return size;
     }
 
-    public void setSize(String size) {
+    public void setSize(long size) {
         this.size = size;
     }
 

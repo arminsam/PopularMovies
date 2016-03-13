@@ -1,50 +1,50 @@
 package com.arminsam.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.util.Log;
+import com.arminsam.popularmovies.data.PopularMoviesContract;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import android.os.AsyncTask;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
-public class FetchReviewsTask extends AsyncTask<Movie, Void, List<Review>> {
+public class FetchReviewsTask extends AsyncTask<Void, Void, Void> {
 
     private final String LOG_TAG = FetchReviewsTask.class.getSimpleName();
-    private DetailActivityFragment mCaller;
     private Context mContext;
+    private long mMovieId;
+    private String mMovieKey;
 
-    public FetchReviewsTask(Context context, DetailActivityFragment caller) {
+    public FetchReviewsTask(Context context, long movieId, String movieKey) {
         this.mContext = context;
-        this.mCaller = caller;
+        this.mMovieId = movieId;
+        this.mMovieKey = movieKey;
     }
 
-    /**
-     * Take the String representing the complete movie review list in JSON Format and
-     * pull out the data we need to construct the Strings needed for the wireframes.
-     *
-     * @param reviewsJsonStr
-     * @return
-     */
-    private List<Review> getReviewsDataFromJson(String reviewsJsonStr) throws JSONException {
+    private void getReviewsDataFromJson(String reviewsJsonStr) throws JSONException {
         // These are the names of the JSON objects that need to be extracted.
-        final String REVIEW_LIST = "results";
+        final String REVIEWS_LIST = "results";
         final String REVIEW_ID = "id";
         final String REVIEW_AUTHOR = "author";
         final String REVIEW_CONTENT = "content";
         final String REVIEW_URL = "url";
 
-        JSONObject reviewsJson = new JSONObject(reviewsJsonStr);
-        JSONArray reviewsArray = reviewsJson.getJSONArray(REVIEW_LIST);
+        JSONObject moviesJson = new JSONObject(reviewsJsonStr);
+        JSONArray reviewsArray = moviesJson.getJSONArray(REVIEWS_LIST);
 
+        // Insert the new reviews information into the database
+        Vector<ContentValues> cVVector = new Vector<>(reviewsArray.length());
         List<Review> resultList = new ArrayList<>();
 
         for(int i = 0; i < reviewsArray.length(); i++) {
-            // Get the JSON object representing the each review
+            // Get the JSON object representing the review
             JSONObject reviewJson = reviewsArray.getJSONObject(i);
             // Create a new Review object based on the extracted json data
             Review reviewObj = new Review();
@@ -53,9 +53,28 @@ public class FetchReviewsTask extends AsyncTask<Movie, Void, List<Review>> {
             reviewObj.setContent(reviewJson.getString(REVIEW_CONTENT));
             reviewObj.setUrl(reviewJson.getString(REVIEW_URL));
             resultList.add(reviewObj);
+
+            ContentValues reviewValues = new ContentValues();
+
+            reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_MOVIE_KEY, mMovieId);
+            reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_REVIEW_ID, reviewObj.getReviewId());
+            reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_AUTHOR, reviewObj.getAuthor());
+            reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_CONTENT, reviewObj.getContent());
+            reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_URL, reviewObj.getUrl());
+
+            cVVector.add(reviewValues);
         }
 
-        return resultList;
+        int inserted = 0;
+        // add to database
+        if (cVVector.size() > 0) {
+            ContentValues[] cvArray = new ContentValues[cVVector.size()];
+            cVVector.toArray(cvArray);
+            inserted = mContext.getContentResolver()
+                    .bulkInsert(PopularMoviesContract.ReviewsEntry.CONTENT_URI, cvArray);
+        }
+
+        Log.d(LOG_TAG, "FetchReviewsTask Complete. " + inserted + " Inserted");
     }
 
     /**
@@ -65,12 +84,12 @@ public class FetchReviewsTask extends AsyncTask<Movie, Void, List<Review>> {
      * @return
      */
     @Override
-    protected List<Review> doInBackground(Movie... params) {
+    protected Void doInBackground(Void... params) {
         // create the url in which the app requests data from api
         String apiKey = Utility.getProperty("api.moviesdb.key", mContext);
 
         try {
-            final String API_BASE_URL = "http://api.themoviedb.org/3/movie/" + params[0].getMovieId() + "/reviews?";
+            final String API_BASE_URL = "http://api.themoviedb.org/3/movie/" + mMovieKey + "/reviews?";
             final String API_KEY_PARAM = "api_key";
             Uri builtUri = Uri.parse(API_BASE_URL).buildUpon()
                     .appendQueryParameter(API_KEY_PARAM, apiKey)
@@ -79,7 +98,7 @@ public class FetchReviewsTask extends AsyncTask<Movie, Void, List<Review>> {
             URL url = new URL(builtUri.toString());
             String reviewsJsonStr = Utility.getResultFromUrl(url);
             try {
-                return getReviewsDataFromJson(reviewsJsonStr);
+                getReviewsDataFromJson(reviewsJsonStr);
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
@@ -89,18 +108,5 @@ public class FetchReviewsTask extends AsyncTask<Movie, Void, List<Review>> {
         }
 
         return null;
-    }
-
-    /**
-     * Update the UI when doInBackground method returns a result
-     *
-     * @param reviews
-     */
-    @Override
-    protected void onPostExecute(List<Review> reviews) {
-        if (reviews != null) {
-            mCaller.setReviews((ArrayList) reviews);
-            mCaller.addItemsToLayout(DetailActivityFragment.REVIEW_ITEM);
-        }
     }
 }

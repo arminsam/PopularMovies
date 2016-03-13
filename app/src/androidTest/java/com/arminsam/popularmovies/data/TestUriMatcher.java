@@ -28,6 +28,6 @@ public class TestUriMatcher extends AndroidTestCase {
         assertEquals("Error: The MOST POPULAR MOVIES URI was matched incorrectly.",
                 testMatcher.match(TEST_FAVORITE_MOVIES_DIR), PopularMoviesProvider.MOVIES_FAVORITE);
         assertEquals("Error: The MOVIE DETAIL URI was matched incorrectly.",
-                testMatcher.match(TEST_MOVIE_DIR), PopularMoviesProvider.MOVIE_WITH_TRAILERS_AND_REVIEWS);
+                testMatcher.match(TEST_MOVIE_DIR), PopularMoviesProvider.SINGLE_MOVIE);
     }
 }

@@ -42,16 +42,19 @@ public class PopularMoviesDbHelper extends SQLiteOpenHelper {
                 TrailersEntry.COLUMN_SOURCE + " TEXT NOT NULL, " +
                 TrailersEntry.COLUMN_NAME + " TEXT, " +
                 TrailersEntry.COLUMN_SIZE + " TEXT, " +
+                "UNIQUE (" + TrailersEntry.COLUMN_SOURCE + ") ON CONFLICT IGNORE, " +
                 "FOREIGN KEY (" + TrailersEntry.COLUMN_MOVIE_KEY + ") REFERENCES " +
                 MoviesEntry.TABLE_NAME + " (" + MoviesEntry._ID + ")" +
-                ");";
+                ")";
         // Create reviews table
         final String SQL_CREATE_REVIEWS_TABLE = "CREATE TABLE " + ReviewsEntry.TABLE_NAME + " (" +
                 ReviewsEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                ReviewsEntry.COLUMN_REVIEW_ID + " TEXT NOT NULL, " +
                 ReviewsEntry.COLUMN_MOVIE_KEY + " INTEGER NOT NULL, " +
                 ReviewsEntry.COLUMN_AUTHOR + " TEXT NOT NULL, " +
                 ReviewsEntry.COLUMN_CONTENT + " TEXT, " +
                 ReviewsEntry.COLUMN_URL + " TEXT, " +
+                "UNIQUE (" + ReviewsEntry.COLUMN_REVIEW_ID + ") ON CONFLICT IGNORE, " +
                 "FOREIGN KEY (" + ReviewsEntry.COLUMN_MOVIE_KEY + ") REFERENCES " +
                 MoviesEntry.TABLE_NAME + " (" + MoviesEntry._ID + ")" +
                 ");";

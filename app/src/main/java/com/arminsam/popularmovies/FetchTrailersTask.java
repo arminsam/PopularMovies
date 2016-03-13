@@ -1,76 +1,91 @@
 package com.arminsam.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.v4.app.LoaderManager;
 import android.util.Log;
+import com.arminsam.popularmovies.data.PopularMoviesContract;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
-public class FetchTrailersTask extends AsyncTask<Movie, Void, List<Trailer>> {
+public class FetchTrailersTask extends AsyncTask<Void, Void, Void> {
 
     private final String LOG_TAG = FetchTrailersTask.class.getSimpleName();
-    private DetailActivityFragment mCaller;
     private Context mContext;
+    private long mMovieId;
+    private String mMovieKey;
 
-    public FetchTrailersTask(Context context, DetailActivityFragment caller) {
+    public FetchTrailersTask(Context context, long movieId, String movieKey) {
         this.mContext = context;
-        this.mCaller = caller;
+        this.mMovieId = movieId;
+        this.mMovieKey = movieKey;
     }
 
-    /**
-     * Take the String representing the complete movie trailer list in JSON Format and
-     * pull out the data we need to construct the Strings needed for the wireframes.
-     *
-     * @param trailersJsonStr
-     * @return
-     */
-    private List<Trailer> getTrailersDataFromJson(String trailersJsonStr) throws JSONException {
+    private void getTrailersDataFromJson(String trailersJsonStr) throws JSONException {
         // These are the names of the JSON objects that need to be extracted.
-        final String TRAILER_LIST = "youtube";
-        final String TRAILER_ID = "id";
-        final String TRAILER_SOURCE = "source";
+        final String TRAILERS_LIST = "results";
+        final String TRAILER_SOURCE = "key";
         final String TRAILER_NAME = "name";
         final String TRAILER_SIZE = "size";
 
         JSONObject trailersJson = new JSONObject(trailersJsonStr);
-        JSONArray trailersArray = trailersJson.getJSONArray(TRAILER_LIST);
+        JSONArray trailersArray = trailersJson.getJSONArray(TRAILERS_LIST);
 
+        // Insert the new trailers information into the database
+        Vector<ContentValues> cVVector = new Vector<>(trailersArray.length());
         List<Trailer> resultList = new ArrayList<>();
 
         for(int i = 0; i < trailersArray.length(); i++) {
-            // Get the JSON object representing the each trailer
-            JSONObject trailerJson = trailersArray.getJSONObject(i);
-            // Create a new Trailer object based on the extracted json data
+            // Get the JSON object representing the movie
+            JSONObject movieJson = trailersArray.getJSONObject(i);
+            // Create a new Movie object based on the extracted json data
             Trailer trailerObj = new Trailer();
-            trailerObj.setSource(trailerJson.getString(TRAILER_SOURCE));
-            trailerObj.setName(trailerJson.getString(TRAILER_NAME));
-            trailerObj.setSize(trailerJson.getString(TRAILER_SIZE));
+            trailerObj.setSource(movieJson.getString(TRAILER_SOURCE));
+            trailerObj.setName(movieJson.getString(TRAILER_NAME));
+            trailerObj.setSize(movieJson.getLong(TRAILER_SIZE));
             resultList.add(trailerObj);
+
+            ContentValues trailerValues = new ContentValues();
+
+            trailerValues.put(PopularMoviesContract.TrailersEntry.COLUMN_MOVIE_KEY, mMovieId);
+            trailerValues.put(PopularMoviesContract.TrailersEntry.COLUMN_SOURCE, trailerObj.getSource());
+            trailerValues.put(PopularMoviesContract.TrailersEntry.COLUMN_SIZE, trailerObj.getSize());
+            trailerValues.put(PopularMoviesContract.TrailersEntry.COLUMN_NAME, trailerObj.getName());
+
+            cVVector.add(trailerValues);
         }
 
-        return resultList;
+        int inserted = 0;
+        // add to database
+        if (cVVector.size() > 0) {
+            ContentValues[] cvArray = new ContentValues[cVVector.size()];
+            cVVector.toArray(cvArray);
+            inserted = mContext.getContentResolver()
+                    .bulkInsert(PopularMoviesContract.TrailersEntry.CONTENT_URI, cvArray);
+        }
+
+        Log.d(LOG_TAG, "FetchTrailersTask Complete. " + inserted + " Inserted");
     }
 
-    /**
-     * Build and connect to API endpoint url, and return json string result.
-     *
-     * @param params
-     * @return
-     */
+    private String getThumbnailPath() {
+        return "http://img.youtube.com/vi/" + mMovieKey + "/0.jpg";
+    }
+
     @Override
-    protected List<Trailer> doInBackground(Movie... params) {
+    protected Void doInBackground(Void... params) {
         // create the url in which the app requests data from api
         String apiKey = Utility.getProperty("api.moviesdb.key", mContext);
 
         try {
-            final String API_BASE_URL = "http://api.themoviedb.org/3/movie/" + params[0].getMovieId() + "/trailers?";
+            final String API_BASE_URL = "http://api.themoviedb.org/3/movie/" + mMovieKey + "/videos?";
             final String API_KEY_PARAM = "api_key";
             Uri builtUri = Uri.parse(API_BASE_URL).buildUpon()
                     .appendQueryParameter(API_KEY_PARAM, apiKey)
@@ -79,7 +94,7 @@ public class FetchTrailersTask extends AsyncTask<Movie, Void, List<Trailer>> {
             URL url = new URL(builtUri.toString());
             String trailersJsonStr = Utility.getResultFromUrl(url);
             try {
-                return getTrailersDataFromJson(trailersJsonStr);
+                getTrailersDataFromJson(trailersJsonStr);
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
@@ -91,16 +106,7 @@ public class FetchTrailersTask extends AsyncTask<Movie, Void, List<Trailer>> {
         return null;
     }
 
-    /**
-     * Update the UI when doInBackground method returns a result
-     *
-     * @param trailers
-     */
-    @Override
-    protected void onPostExecute(List<Trailer> trailers) {
-        if (trailers != null) {
-            mCaller.setTrailers((ArrayList) trailers);
-            mCaller.addItemsToLayout(DetailActivityFragment.TRAILER_ITEM);
-        }
-    }
+//    @Override
+//    protected void onPostExecute(String result) {
+//    }
 }

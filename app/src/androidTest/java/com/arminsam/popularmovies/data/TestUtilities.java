@@ -62,6 +62,7 @@ public class TestUtilities extends AndroidTestCase {
     static ContentValues createTestReviewValues(long movieRowId) {
         ContentValues reviewValues = new ContentValues();
         reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_MOVIE_KEY, movieRowId);
+        reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_REVIEW_ID, "12318731878919276");
         reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_AUTHOR, "John Doe");
         reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_CONTENT, "One of the best movies of 2015.");
         reviewValues.put(PopularMoviesContract.ReviewsEntry.COLUMN_URL, "");

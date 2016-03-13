@@ -16,10 +16,6 @@ public class TestDb extends AndroidTestCase {
         mContext.deleteDatabase(PopularMoviesDbHelper.DATABASE_NAME);
     }
 
-    /*
-        This function gets called before each test is executed to delete the database.  This makes
-        sure that we always have a clean test.
-     */
     public void setUp() {
         deleteTheDatabase();
     }
@@ -86,12 +82,6 @@ public class TestDb extends AndroidTestCase {
         db.close();
     }
 
-    /*
-        Students:  Here is where you will build code to test that we can insert and query the
-        location database.  We've done a lot of work for you.  You'll want to look in TestUtilities
-        where you can uncomment out the "createNorthPoleLocationValues" function.  You can
-        also make use of the ValidateCurrentRecord function from within TestUtilities.
-    */
     public void testMoviesTable() {
         // First step: Get reference to writable database
         PopularMoviesDbHelper dbHelper = new PopularMoviesDbHelper(mContext);

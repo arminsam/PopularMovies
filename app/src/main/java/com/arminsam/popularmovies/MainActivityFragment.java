@@ -24,11 +24,14 @@ import com.arminsam.popularmovies.data.PopularMoviesContract;
  */
 public class MainActivityFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
+    public static final String FLAG_MOVIE_ID = "movie_id";
+    public static final String FLAG_MOVIE_KEY = "movie_key";
     private static final int MOVIES_LOADER = 0;
 
     private ImageAdapter mImageAdapter;
     private SharedPreferences mPrefs;
     private String mCurrentSortPref;
+
     // For the movies view we're showing only a small subset of the stored data.
     private static final String[] MOVIE_COLUMNS = {
             PopularMoviesContract.MoviesEntry.TABLE_NAME + "." + PopularMoviesContract.MoviesEntry._ID,
@@ -49,22 +52,7 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     @Bind(R.id.movies_list) GridView gridView;
 
     public MainActivityFragment() {
-    }
-
-    /**
-     * A callback interface that all activities containing this fragment must
-     * implement. This mechanism allows activities to be notified of item
-     * selections.
-     */
-    public interface Callback {
-        /**
-         * DetailFragmentCallback for when an item has been selected.
-         */
-        void onItemSelected(Uri dateUri);
-    }
-
-    public ImageAdapter getImageAdapter() {
-        return this.mImageAdapter;
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -75,8 +63,19 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
                 getString(R.string.pref_sort_popularity));
         // Update local database data whenever the launches for the first time
         updateMovies();
-        // Add this line in order for this fragment to handle menu events.
-        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        String newSortPref = mPrefs.getString(getString(R.string.pref_sort_key),
+                getString(R.string.pref_sort_popularity));
+
+        // If sorting preference has changed, reload the data
+        if (!newSortPref.equals(mCurrentSortPref)) {
+            mCurrentSortPref = newSortPref;
+            updateMovies();
+        }
     }
 
     @Override
@@ -123,10 +122,10 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
                 // if it cannot seek to that position.
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 if (cursor != null) {
-                    ((Callback) getActivity())
-                            .onItemSelected(PopularMoviesContract.MoviesEntry.buildMovieUri(
-                                    cursor.getLong(COL_ID)
-                            ));
+                    Intent intent = new Intent(getActivity(), DetailActivity.class)
+                            .putExtra(FLAG_MOVIE_ID, cursor.getLong(COL_ID))
+                            .putExtra(FLAG_MOVIE_KEY, cursor.getString(COL_MOVIE_ID));
+                    startActivity(intent);
                 }
             }
         });
@@ -141,22 +140,6 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     }
 
     /**
-     * Called when the Fragment is visible to the user.
-     */
-    @Override
-    public void onStart() {
-        super.onStart();
-        String newPref = mPrefs.getString(getString(R.string.pref_sort_key),
-                getString(R.string.pref_sort_popularity));
-
-        // If sorting preference has changed, reload the data
-        if (mCurrentSortPref != newPref) {
-            mCurrentSortPref = newPref;
-            onSortBySettingChanged();
-        }
-    }
-
-    /**
      * Called to ask the fragment to save its current dynamic state, so it
      * can later be reconstructed in a new instance of its process is
      * restarted.
@@ -166,11 +149,6 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-    }
-
-    // since we read the sort by setting when we create the loader, all we need to do is restart things
-    public void onSortBySettingChanged() {
-        updateMovies();
     }
 
     /**
