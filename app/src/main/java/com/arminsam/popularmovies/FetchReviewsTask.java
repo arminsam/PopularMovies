@@ -18,14 +18,18 @@ import java.util.Vector;
 public class FetchReviewsTask extends AsyncTask<Void, Void, Void> {
 
     private final String LOG_TAG = FetchReviewsTask.class.getSimpleName();
+    private DetailActivityFragment mCaller;
     private Context mContext;
     private long mMovieId;
     private String mMovieKey;
+    private int mInserted;
 
-    public FetchReviewsTask(Context context, long movieId, String movieKey) {
+    public FetchReviewsTask(DetailActivityFragment caller, Context context, long movieId, String movieKey) {
+        this.mCaller = caller;
         this.mContext = context;
         this.mMovieId = movieId;
         this.mMovieKey = movieKey;
+        this.mInserted = 0;
     }
 
     private void getReviewsDataFromJson(String reviewsJsonStr) throws JSONException {
@@ -65,16 +69,15 @@ public class FetchReviewsTask extends AsyncTask<Void, Void, Void> {
             cVVector.add(reviewValues);
         }
 
-        int inserted = 0;
         // add to database
         if (cVVector.size() > 0) {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
-            inserted = mContext.getContentResolver()
+            mInserted = mContext.getContentResolver()
                     .bulkInsert(PopularMoviesContract.ReviewsEntry.CONTENT_URI, cvArray);
         }
 
-        Log.d(LOG_TAG, "FetchReviewsTask Complete. " + inserted + " Inserted");
+        Log.d(LOG_TAG, "FetchReviewsTask Complete. " + mInserted + " Inserted");
     }
 
     /**
@@ -108,5 +111,10 @@ public class FetchReviewsTask extends AsyncTask<Void, Void, Void> {
         }
 
         return null;
+    }
+
+    @Override
+    protected void onPostExecute(Void v) {
+        mCaller.getLoaderManager().initLoader(DetailActivityFragment.REVIEWS_LOADER, null, mCaller);
     }
 }

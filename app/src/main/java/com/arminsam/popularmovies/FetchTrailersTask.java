@@ -19,14 +19,18 @@ import java.util.Vector;
 public class FetchTrailersTask extends AsyncTask<Void, Void, Void> {
 
     private final String LOG_TAG = FetchTrailersTask.class.getSimpleName();
+    private DetailActivityFragment mCaller;
     private Context mContext;
     private long mMovieId;
     private String mMovieKey;
+    private int mInserted;
 
-    public FetchTrailersTask(Context context, long movieId, String movieKey) {
+    public FetchTrailersTask(DetailActivityFragment caller, Context context, long movieId, String movieKey) {
+        this.mCaller = caller;
         this.mContext = context;
         this.mMovieId = movieId;
         this.mMovieKey = movieKey;
+        this.mInserted = 0;
     }
 
     private void getTrailersDataFromJson(String trailersJsonStr) throws JSONException {
@@ -63,16 +67,15 @@ public class FetchTrailersTask extends AsyncTask<Void, Void, Void> {
             cVVector.add(trailerValues);
         }
 
-        int inserted = 0;
         // add to database
         if (cVVector.size() > 0) {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
-            inserted = mContext.getContentResolver()
+            mInserted = mContext.getContentResolver()
                     .bulkInsert(PopularMoviesContract.TrailersEntry.CONTENT_URI, cvArray);
         }
 
-        Log.d(LOG_TAG, "FetchTrailersTask Complete. " + inserted + " Inserted");
+        Log.d(LOG_TAG, "FetchTrailersTask Complete. " + mInserted + " Inserted");
     }
 
     private String getThumbnailPath() {
@@ -106,7 +109,8 @@ public class FetchTrailersTask extends AsyncTask<Void, Void, Void> {
         return null;
     }
 
-//    @Override
-//    protected void onPostExecute(String result) {
-//    }
+    @Override
+    protected void onPostExecute(Void v) {
+        mCaller.getLoaderManager().initLoader(DetailActivityFragment.TRAILERS_LOADER, null, mCaller);
+    }
 }

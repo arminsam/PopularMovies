@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.*;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -122,10 +123,30 @@ public class MainActivityFragment extends Fragment implements LoaderManager.Load
                 // if it cannot seek to that position.
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 if (cursor != null) {
-                    Intent intent = new Intent(getActivity(), DetailActivity.class)
-                            .putExtra(FLAG_MOVIE_ID, cursor.getLong(COL_ID))
-                            .putExtra(FLAG_MOVIE_KEY, cursor.getString(COL_MOVIE_ID));
-                    startActivity(intent);
+                    MainActivity mainActivity = (MainActivity) getActivity();
+                    if (mainActivity.hasTwoPane()) {
+                        // update detail fragment's layout_weight to 1
+                        View mainFt = mainActivity.findViewById(R.id.movie_detail_container);
+                        mainFt.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                        // In two-pane mode, show the detail view in this activity by
+                        // adding or replacing the detail fragment using a
+                        // fragment transaction.
+                        Bundle args = new Bundle();
+                        args.putLong(FLAG_MOVIE_ID, cursor.getLong(COL_ID));
+                        args.putString(FLAG_MOVIE_KEY, cursor.getString(COL_MOVIE_ID));
+
+                        DetailActivityFragment fragment = new DetailActivityFragment();
+                        fragment.setArguments(args);
+
+                        mainActivity.getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.movie_detail_container, fragment, mainActivity.MOVIESFRAGMENT_TAG)
+                                .commit();
+                    } else {
+                        Intent intent = new Intent(getActivity(), DetailActivity.class)
+                                .putExtra(FLAG_MOVIE_ID, cursor.getLong(COL_ID))
+                                .putExtra(FLAG_MOVIE_KEY, cursor.getString(COL_MOVIE_ID));
+                        startActivity(intent);
+                    }
                 }
             }
         });

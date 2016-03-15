@@ -10,7 +10,6 @@ import android.database.Cursor;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v4.view.MenuItemCompat;
-import android.util.Log;
 import android.view.*;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -44,9 +43,9 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     @Bind(R.id.trailers_list) LinearLayout trailersListView;
     @Bind(R.id.reviews_list) LinearLayout reviewsListView;
 
-    private static final int DETAIL_LOADER = 0;
-    private static final int TRAILERS_LOADER = 1;
-    private static final int REVIEWS_LOADER = 2;
+    public static final int DETAIL_LOADER = 0;
+    public static final int TRAILERS_LOADER = 1;
+    public static final int REVIEWS_LOADER = 2;
 
     private static final String[] MOVIE_COLUMNS = {
             PopularMoviesContract.MoviesEntry.TABLE_NAME + "." + PopularMoviesContract.MoviesEntry._ID,
@@ -92,9 +91,16 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = getActivity().getIntent();
-        mMovieId = intent.getExtras().getLong(MainActivityFragment.FLAG_MOVIE_ID);
-        mMovieKey = intent.getExtras().getString(MainActivityFragment.FLAG_MOVIE_KEY);
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            mMovieId = arguments.getLong(MainActivityFragment.FLAG_MOVIE_ID);
+            mMovieKey = arguments.getString(MainActivityFragment.FLAG_MOVIE_KEY);
+
+        } else {
+            Intent intent = getActivity().getIntent();
+            mMovieId = intent.getExtras().getLong(MainActivityFragment.FLAG_MOVIE_ID);
+            mMovieKey = intent.getExtras().getString(MainActivityFragment.FLAG_MOVIE_KEY);
+        }
         updateTrailers();
         updateReviews();
     }
@@ -146,22 +152,18 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     }
 
     private void updateTrailers() {
-        FetchTrailersTask trailersTask = new FetchTrailersTask(getActivity(), mMovieId, mMovieKey);
+        FetchTrailersTask trailersTask = new FetchTrailersTask(this, getActivity(), mMovieId, mMovieKey);
         trailersTask.execute();
-        getLoaderManager().restartLoader(TRAILERS_LOADER, null, this);
     }
 
     private void updateReviews() {
-        FetchReviewsTask reviewsTask = new FetchReviewsTask(getActivity(), mMovieId, mMovieKey);
+        FetchReviewsTask reviewsTask = new FetchReviewsTask(this, getActivity(), mMovieId, mMovieKey);
         reviewsTask.execute();
-        getLoaderManager().restartLoader(REVIEWS_LOADER, null, this);
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         getLoaderManager().initLoader(DETAIL_LOADER, null, this);
-        getLoaderManager().initLoader(TRAILERS_LOADER, null, this);
-        getLoaderManager().initLoader(REVIEWS_LOADER, null, this);
         super.onActivityCreated(savedInstanceState);
     }
 
@@ -222,7 +224,9 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     private void updateTrailersListFromLoader(Cursor data) {
         if (!data.moveToFirst()) {
             noTrailersMessage.setVisibility(View.VISIBLE);
+            return;
         }
+
         LayoutInflater inflater = (LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         do {
